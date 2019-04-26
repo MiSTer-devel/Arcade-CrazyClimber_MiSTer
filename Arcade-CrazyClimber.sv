@@ -87,15 +87,20 @@ assign HDMI_ARY = status[1] ? 8'd9  : 8'd3;
 `include "build_id.v" 
 localparam CONF_STR = {
 	"A.CCLIMB;;",
+   "F,rom;", // allow loading of alternate ROMs
 	"-;",
 	"O1,Aspect Ratio,Original,Wide;",
-	"O34,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
+	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"-;",
+	"O89,Lives,3,4,5,6;",
+	//"OC,Cabinet,Upright,Cocktail;",	// not sure how to hook this up
 	"-;",
 	"R0,Reset;",
-	"J,R Right,R Left,R Down,R Up,Start 1P,Start 2P;",
-	"V,v1.00.",`BUILD_DATE
+	"J1,R Right,R Left,R Down,R Up,Start 1P,Start 2P;",
+	"V,v",`BUILD_DATE
 };
 
+wire [7:0] m_dip = { 6'b000000,status[9:8]};
 ////////////////////   CLOCKS   ///////////////////
 
 wire clk_sys;
@@ -167,6 +172,11 @@ always @(posedge clk_sys) begin
 
 			'h005: btn_one_player  <= pressed; // F1
 			'h006: btn_two_players <= pressed; // F2
+			// JPAC/IPAC/MAME Style Codes
+			'h016: btn_start_1     <= pressed; // 1
+			'h01E: btn_start_2     <= pressed; // 2
+			'h02E: btn_coin_1      <= pressed; // 5
+			'h036: btn_coin_2      <= pressed; // 6
 		endcase
 	end
 end
@@ -181,6 +191,10 @@ reg btn_rright = 0;
 reg btn_rleft  = 0;
 reg btn_one_player  = 0;
 reg btn_two_players = 0;
+reg btn_start_1=0;
+reg btn_start_2=0;
+reg btn_coin_1=0;
+reg btn_coin_2=0;
 
 wire m_right  = btn_rright | joy[0];
 wire m_left   = btn_rleft  | joy[1];
@@ -195,56 +209,40 @@ wire m_start1 = btn_one_player  | joy[8];
 wire m_start2 = btn_two_players | joy[9];
 wire m_coin   = m_start1 | m_start2;
 
-wire ce_vid = ce_6;
 wire hs, vs;
 wire [2:0] r,g;
 wire [1:0] b;
-
-assign VGA_CLK  = clk_sys;
-assign HDMI_CLK = VGA_CLK;
-assign HDMI_CE  = VGA_CE;
-assign HDMI_R   = VGA_R;
-assign HDMI_G   = VGA_G;
-assign HDMI_B   = VGA_B;
-assign HDMI_DE  = VGA_DE;
-assign HDMI_HS  = VGA_HS;
-assign HDMI_VS  = VGA_VS;
-assign HDMI_SL  = 0;
 
 wire HSync = ~hs;
 wire VSync = ~vs;
 wire HBlank, VBlank;
 
-wire [1:0] scale = status[4:3];
+reg ce_pix;
+always @(posedge clk_sys) begin
+        reg old_clk;
 
-video_mixer #(.LINE_LENGTH(260), .HALF_DEPTH(1)) video_mixer
+        old_clk <= ce_6;
+        ce_pix <= old_clk & ~ce_6;
+end
+
+
+arcade_fx #(514,8) arcade_video
 (
-	.*,
-	.clk_sys(VGA_CLK),
-	.ce_pix(ce_vid),
-	.ce_pix_out(VGA_CE),
+        .*,
+        .clk_video(clk_sys),
 
-	.scanlines({scale == 3, scale == 2}),
-	.scandoubler(scale || forced_scandoubler),
-	.hq2x(scale==1),
-	.mono(0),
+        .RGB_in({r,g,b}),
 
-	.R({r,r[2]}),
-	.G({g,g[2]}),
-	.B({b,b})
+        .fx(status[5:3])
 );
+
 
 wire [15:0] audio;
 assign AUDIO_L = audio;
 assign AUDIO_R = AUDIO_L;
 assign AUDIO_S = 0;
 
-reg initReset_n = 0;
-always @(posedge clk_sys) begin
-	reg old_download;
-	old_download <= ioctl_download;
-	if(old_download & ~ioctl_download) initReset_n <= 1;
-end
+
 
 reg ce_12,ce_6;
 always @(negedge clk_sys) begin
@@ -258,7 +256,7 @@ end
 crazy_climber crazy_climber
 (
 	.clock_12(clk_sys & ce_12),
-	.reset(RESET | status[0] | buttons[1] | ~initReset_n),
+	.reset(RESET | status[0] | buttons[1] | ioctl_download),
 
 	.dn_clk(clk_sys),
 	.dn_addr(ioctl_addr[15:0]),
@@ -275,9 +273,9 @@ crazy_climber crazy_climber
 
 	.audio_out(audio),
 
-	.coin1(m_coin),
-	.start1(m_start1),
-	.start2(m_start2),
+	.coin1(m_coin|btn_coin_1|btn_coin_2),
+	.start1(m_start1|btn_start_1),
+	.start2(m_start2|btn_start_2),
 
 	.l_up1(m_up),
 	.l_down1(m_down),
@@ -295,7 +293,11 @@ crazy_climber crazy_climber
 	.r_up2(m_rup),
 	.r_down2(m_rdown),
 	.r_left2(m_rleft),
-	.r_right2(m_rright)
+	.r_right2(m_rright),
+
+	.cabinet(status[12]),
+
+	.dip_sw(m_dip)
 );
 
 
