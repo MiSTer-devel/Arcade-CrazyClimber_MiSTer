@@ -26,6 +26,9 @@
 --   W,A,S,D     : Left hand movements
 --   UP,DOWN,LEFT,RIGHT arrows : Right hand movements
 --
+--   5,6 : Add coin
+--   1,2 : Start Player 1, Player 2
+--
 -- Joystick/Gamepad support.
 -- 
 -- 

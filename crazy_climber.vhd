@@ -45,8 +45,9 @@ port(
   l_right2     : in std_logic;
   l_left2      : in std_logic;
   l_down2      : in std_logic;
-  l_up2        : in std_logic
- 
+  l_up2        : in std_logic;
+  cabinet      : in std_logic;
+  dip_sw			: in std_logic_vector(7 downto 0)
 );
 end crazy_climber;
 
@@ -257,7 +258,7 @@ video_vs    <= vsync;
 ------------------
 player1 <= r_right1 & r_left1 & r_down1 & r_up1 & l_right1 & l_left1 & l_down1 & l_up1;
 player2 <= r_right2 & r_left2 & r_down2 & r_up2 & l_right2 & l_left2 & l_down2 & l_up2;
-coins <=  ("0001" & start2 & start1 & '0' & coin1); -- upright cabinet
+coins <=  ("000" & cabinet & start2 & start1 & '0' & coin1); -- upright cabinet
 
 -----------------------
 -- cpu write addressing
@@ -335,7 +336,7 @@ with cpu_addr(15 downto 11) select
 		color_ram_do      when "10011", -- 9800-9fff (ram only at 9800-9bff)		
 		player1           when "10100", -- a000
 		player2           when "10101", -- a800
-		"00000000"        when "10110", -- b000 - dip switch (upright cabinet)
+		dip_sw            when "10110", -- b000 - dip switch (upright cabinet)
 		coins             when "10111", -- b800 
 		"00000000"        when others;
 
