@@ -52,6 +52,7 @@ module emu
 	output [1:0]  VGA_SL,
 	output        VGA_SCALER, // Force VGA scaler
 
+	`ifdef USE_FB
 	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
 	//    [2:0] : 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
@@ -76,6 +77,7 @@ module emu
 	output [23:0] FB_PAL_DOUT,
 	input  [23:0] FB_PAL_DIN,
 	output        FB_PAL_WR,
+	`endif
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -89,6 +91,7 @@ module emu
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,    // 1 - signed audio samples, 0 - unsigned
+	`ifdef USE_DDRAM
 
 	//High latency DDR3 RAM interface
 	//Use for non-critical time purposes
@@ -102,6 +105,7 @@ module emu
 	output [63:0] DDRAM_DIN,
 	output  [7:0] DDRAM_BE,
 	output        DDRAM_WE,
+	`endif
 
 	// Open-drain User port.
 	// 0 - D+/RX
@@ -119,7 +123,6 @@ assign LED_USER  = ioctl_download;
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 
-assign {FB_PAL_CLK, FB_FORCE_BLANK, FB_PAL_ADDR, FB_PAL_DOUT, FB_PAL_WR} = '0;
 
 wire [1:0] ar = status[20:19];
 
@@ -165,8 +168,6 @@ wire        ioctl_download;
 wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
-
-wire [10:0] ps2_key;
 
 wire [15:0] joystick_0, joystick_1;
 wire [15:0] joy = joystick_0 | joystick_1;
@@ -244,13 +245,14 @@ assign AUDIO_S = 0;
 
 
 
-reg ce_12,ce_6;
+reg ce_12;
+//reg ce_6;
 always @(negedge clk_sys) begin
 	reg [2:0] div;
 
 	div   <= div + 1'd1;
 	ce_12 <= !div[1:0];
-	ce_6  <= !div[2:0];
+//	ce_6  <= !div[2:0];
 end
 
 crazy_climber crazy_climber
