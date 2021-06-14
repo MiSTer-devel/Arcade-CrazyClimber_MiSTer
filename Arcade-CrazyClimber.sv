@@ -198,14 +198,14 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.joystick_1(joystick_1)
 );
 
-wire m_right  = joy[0];
-wire m_left   = joy[1];
-wire m_down   = joy[2];
-wire m_up     = joy[3];
-wire m_rright = joy[4];
-wire m_rleft  = joy[5];
-wire m_rdown  = joy[6];
-wire m_rup    = joy[7];
+wire m_right  = joystick_0[0];
+wire m_left   = joystick_0[1];
+wire m_down   = joystick_0[2];
+wire m_up     = joystick_0[3];
+wire m_rright = joystick_0[4] | joystick_1[0];
+wire m_rleft  = joystick_0[5] | joystick_1[1];
+wire m_rdown  = joystick_0[6] | joystick_1[2];
+wire m_rup    = joystick_0[7] | joystick_1[3];
 
 wire m_start1 = joy[8];
 wire m_start2 = joy[9];
